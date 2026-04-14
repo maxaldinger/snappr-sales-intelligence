@@ -19,7 +19,7 @@
       "maxDuration": 30
     },
     "src/app/api/sa-product-fit/route.ts": {
-      "maxDuration": 30
+      "maxDuration": 60
     },
     "src/app/api/sa-pricebook-quote/route.ts": {
       "maxDuration": 30

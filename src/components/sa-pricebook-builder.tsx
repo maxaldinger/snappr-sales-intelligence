@@ -66,7 +66,9 @@ export default function SaPricebookBuilder({ dealName }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lineItems: items, dealName, discountPct: discount }),
       })
-      const d = await r.json()
+      const text = await r.text()
+      let d: any
+      try { d = JSON.parse(text) } catch { setQuoteNotes('Request timed out. Try again.'); return }
       setQuoteNotes(d.summary || d.notes?.join('\n') || 'Quote generated.')
     } catch { setQuoteNotes('Failed to generate AI quote summary.') }
     finally { setLoading(false) }

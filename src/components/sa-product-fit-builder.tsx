@@ -20,7 +20,9 @@ export default function SaProductFitBuilder({ dealName }: Props) {
     setLoading(true); setError('')
     try {
       const r = await fetch('/api/sa-product-fit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes, dealName }) })
-      const d = await r.json()
+      const text = await r.text()
+      let d: any
+      try { d = JSON.parse(text) } catch { throw new Error('Analysis timed out or returned an invalid response. Try shorter notes or try again.') }
       if (!r.ok) throw new Error(d.error || 'Failed')
       setResult(d)
     } catch (e: any) { setError(e.message) } finally { setLoading(false) }

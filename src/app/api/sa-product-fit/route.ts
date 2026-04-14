@@ -47,7 +47,9 @@ Return ONLY valid JSON:
     if (!raw.startsWith('{')) { const i = raw.indexOf('{'); if (i >= 0) raw = raw.slice(i) }
     if (!raw.endsWith('}')) { const i = raw.lastIndexOf('}'); if (i > 0) raw = raw.slice(0, i + 1) }
 
-    return NextResponse.json(JSON.parse(raw))
+    let parsed
+    try { parsed = JSON.parse(raw) } catch { return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 502 }) }
+    return NextResponse.json(parsed)
   } catch (error: unknown) {
     console.error('sa-product-fit error:', error)
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 })

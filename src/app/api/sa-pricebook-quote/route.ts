@@ -33,7 +33,9 @@ Return ONLY valid JSON:
     let raw = textBlock?.text || '{}'
     raw = raw.replace(/```json|```/g, '').trim()
 
-    return NextResponse.json(JSON.parse(raw))
+    let parsed
+    try { parsed = JSON.parse(raw) } catch { return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 502 }) }
+    return NextResponse.json(parsed)
   } catch (error: unknown) {
     console.error('sa-pricebook-quote error:', error)
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 })

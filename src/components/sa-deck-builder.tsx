@@ -47,7 +47,9 @@ export default function SaDeckBuilder({ dealName }: Props) {
           tool: 'deck',
         }),
       })
-      const d = await r.json()
+      const rawText = await r.text()
+      let d: any
+      try { d = JSON.parse(rawText) } catch { throw new Error('Request timed out or returned an invalid response. Try again.') }
       const text = d.content || d.message || ''
       // Try to extract JSON from the response
       const jsonMatch = text.match(/\[[\s\S]*\]/)

@@ -25,7 +25,9 @@ export default function SaProposalBuilder({ dealName }: Props) {
     setLoading(true); setError('')
     try {
       const r = await fetch('/api/sa-proposal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes, products, dealName }) })
-      const d = await r.json()
+      const text = await r.text()
+      let d: any
+      try { d = JSON.parse(text) } catch { throw new Error('Request timed out or returned an invalid response. Try again.') }
       if (!r.ok) throw new Error(d.error || 'Failed')
       setProposal(d.proposal); setMode('proposal')
     } catch (e: any) { setError(e.message) } finally { setLoading(false) }
