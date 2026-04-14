@@ -103,19 +103,21 @@ export async function GET(req: Request) {
 
   // Check cache
   if (!force) {
-    const { data: cached } = await db
-      .from('sn_feed_cache')
-      .select('companies, fetched_at')
-      .order('fetched_at', { ascending: false })
-      .limit(1)
-      .single()
+    try {
+      const { data: cached } = await db
+        .from('sn_feed_cache')
+        .select('companies, fetched_at')
+        .order('fetched_at', { ascending: false })
+        .limit(1)
+        .single()
 
-    if (cached?.companies) {
-      const age = (Date.now() - new Date(cached.fetched_at).getTime()) / 3600000
-      if (age < FEED_TTL_HOURS) {
-        return NextResponse.json({ companies: cached.companies, cached: true })
+      if (cached?.companies) {
+        const age = (Date.now() - new Date(cached.fetched_at).getTime()) / 3600000
+        if (age < FEED_TTL_HOURS) {
+          return NextResponse.json({ companies: cached.companies, cached: true })
+        }
       }
-    }
+    } catch { /* table may not exist yet */ }
   }
 
   try {
@@ -129,8 +131,10 @@ export async function GET(req: Request) {
     const allHeadlines = results.flat()
 
     if (allHeadlines.length === 0) {
-      const { data: stale } = await db.from('sn_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
-      return NextResponse.json({ companies: stale?.companies || [], stale: true })
+      try {
+        const { data: stale } = await db.from('sn_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
+        return NextResponse.json({ companies: stale?.companies || [], stale: true })
+      } catch { return NextResponse.json({ companies: [], stale: true }) }
     }
 
     // Ask Claude to extract companies
@@ -174,23 +178,29 @@ No markdown fences. No explanation. Just the JSON array.`,
     let companies
     try { companies = JSON.parse(raw) } catch { companies = [] }
 
-    // Write signals to timeline
-    for (const c of companies) {
-      if (c.company && c.top_signal) {
-        await db.from('sn_signal_timeline').upsert(
-          { company: c.company, signal_text: c.top_signal.slice(0, 500), signal_type: c.signal_type || 'news', source_url: '' },
-          { onConflict: 'company,signal_text' }
-        ).then(() => {})
+    // Write signals to timeline (best-effort)
+    try {
+      for (const c of companies) {
+        if (c.company && c.top_signal) {
+          await db.from('sn_signal_timeline').upsert(
+            { company: c.company, signal_text: c.top_signal.slice(0, 500), signal_type: c.signal_type || 'news', source_url: '' },
+            { onConflict: 'company,signal_text' }
+          )
+        }
       }
-    }
+    } catch { /* table may not exist */ }
 
-    // Cache
-    await db.from('sn_feed_cache').insert({ companies, fetched_at: new Date().toISOString() })
+    // Cache (best-effort)
+    try {
+      await db.from('sn_feed_cache').insert({ companies, fetched_at: new Date().toISOString() })
+    } catch { /* table may not exist */ }
 
     return NextResponse.json({ companies })
   } catch (err) {
     console.error('Feed error:', err)
-    const { data: stale } = await db.from('sn_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
-    return NextResponse.json({ companies: stale?.companies || [], error: true })
+    try {
+      const { data: stale } = await db.from('sn_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
+      return NextResponse.json({ companies: stale?.companies || [], error: true })
+    } catch { return NextResponse.json({ companies: [], error: true }) }
   }
 }

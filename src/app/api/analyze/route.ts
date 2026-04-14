@@ -72,16 +72,20 @@ export async function POST(request: Request) {
 
   const db = getDb()
 
-  const { data: cached } = await db
-    .from('sn_company_intel')
-    .select('intel, last_analyzed_at')
-    .eq('company', company)
-    .single()
+  let cached: any = null
+  try {
+    const { data } = await db
+      .from('sn_company_intel')
+      .select('intel, last_analyzed_at')
+      .eq('company', company)
+      .single()
+    cached = data
 
-  if (cached?.intel) {
-    const age = (Date.now() - new Date(cached.last_analyzed_at).getTime()) / 3600000
-    if (age < INTEL_TTL_HOURS) return NextResponse.json({ intel: cached.intel, cached: true })
-  }
+    if (cached?.intel) {
+      const age = (Date.now() - new Date(cached.last_analyzed_at).getTime()) / 3600000
+      if (age < INTEL_TTL_HOURS) return NextResponse.json({ intel: cached.intel, cached: true })
+    }
+  } catch { /* table may not exist */ }
 
   try {
     const [website, news, contracts] = await Promise.all([
@@ -134,18 +138,20 @@ Return ONLY valid JSON with no markdown fences:
     try { intel = JSON.parse(raw) } catch { intel = null }
 
     if (intel) {
-      if (intel.signals) {
-        for (const s of intel.signals) {
-          await db.from('sn_signal_timeline').upsert(
-            { company, signal_text: s.text?.slice(0, 500), signal_type: s.type || 'news', source_url: '' },
-            { onConflict: 'company,signal_text' }
-          ).then(() => {})
+      try {
+        if (intel.signals) {
+          for (const s of intel.signals) {
+            await db.from('sn_signal_timeline').upsert(
+              { company, signal_text: s.text?.slice(0, 500), signal_type: s.type || 'news', source_url: '' },
+              { onConflict: 'company,signal_text' }
+            )
+          }
         }
-      }
-      await db.from('sn_company_intel').upsert(
-        { company, intel, last_analyzed_at: new Date().toISOString() },
-        { onConflict: 'company' }
-      )
+        await db.from('sn_company_intel').upsert(
+          { company, intel, last_analyzed_at: new Date().toISOString() },
+          { onConflict: 'company' }
+        )
+      } catch { /* table may not exist */ }
     }
 
     return NextResponse.json({ intel: intel || cached?.intel })

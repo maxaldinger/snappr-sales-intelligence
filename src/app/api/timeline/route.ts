@@ -6,14 +6,16 @@ export async function GET(req: Request) {
   const company = searchParams.get('company')
   if (!company) return NextResponse.json({ error: 'Company required' }, { status: 400 })
 
-  const db = getDb()
-  const { data, error } = await db
-    .from('sn_signal_timeline')
-    .select('*')
-    .eq('company', company)
-    .order('first_seen_at', { ascending: false })
-    .limit(50)
+  try {
+    const db = getDb()
+    const { data, error } = await db
+      .from('sn_signal_timeline')
+      .select('*')
+      .eq('company', company)
+      .order('first_seen_at', { ascending: false })
+      .limit(50)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ timeline: data || [] })
+    if (error) return NextResponse.json({ timeline: [] })
+    return NextResponse.json({ timeline: data || [] })
+  } catch { return NextResponse.json({ timeline: [] }) }
 }
