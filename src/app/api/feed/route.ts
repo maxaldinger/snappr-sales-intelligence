@@ -105,7 +105,7 @@ export async function GET(req: Request) {
   if (!force) {
     try {
       const { data: cached } = await db
-        .from('sn_feed_cache')
+        .from('sg_feed_cache')
         .select('companies, fetched_at')
         .order('fetched_at', { ascending: false })
         .limit(1)
@@ -132,7 +132,7 @@ export async function GET(req: Request) {
 
     if (allHeadlines.length === 0) {
       try {
-        const { data: stale } = await db.from('sn_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
+        const { data: stale } = await db.from('sg_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
         return NextResponse.json({ companies: stale?.companies || [], stale: true })
       } catch { return NextResponse.json({ companies: [], stale: true }) }
     }
@@ -182,7 +182,7 @@ No markdown fences. No explanation. Just the JSON array.`,
     try {
       for (const c of companies) {
         if (c.company && c.top_signal) {
-          await db.from('sn_signal_timeline').upsert(
+          await db.from('sg_signal_timeline').upsert(
             { company: c.company, signal_text: c.top_signal.slice(0, 500), signal_type: c.signal_type || 'news', source_url: '' },
             { onConflict: 'company,signal_text' }
           )
@@ -192,14 +192,14 @@ No markdown fences. No explanation. Just the JSON array.`,
 
     // Cache (best-effort)
     try {
-      await db.from('sn_feed_cache').insert({ companies, fetched_at: new Date().toISOString() })
+      await db.from('sg_feed_cache').insert({ companies, fetched_at: new Date().toISOString() })
     } catch { /* table may not exist */ }
 
     return NextResponse.json({ companies })
   } catch (err) {
     console.error('Feed error:', err)
     try {
-      const { data: stale } = await db.from('sn_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
+      const { data: stale } = await db.from('sg_feed_cache').select('companies').order('fetched_at', { ascending: false }).limit(1).single()
       return NextResponse.json({ companies: stale?.companies || [], error: true })
     } catch { return NextResponse.json({ companies: [], error: true }) }
   }

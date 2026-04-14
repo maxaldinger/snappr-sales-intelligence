@@ -75,7 +75,7 @@ export async function POST(request: Request) {
   let cached: any = null
   try {
     const { data } = await db
-      .from('sn_company_intel')
+      .from('sg_company_intel')
       .select('intel, last_analyzed_at')
       .eq('company', company)
       .single()
@@ -141,13 +141,13 @@ Return ONLY valid JSON with no markdown fences:
       try {
         if (intel.signals) {
           for (const s of intel.signals) {
-            await db.from('sn_signal_timeline').upsert(
+            await db.from('sg_signal_timeline').upsert(
               { company, signal_text: s.text?.slice(0, 500), signal_type: s.type || 'news', source_url: '' },
               { onConflict: 'company,signal_text' }
             )
           }
         }
-        await db.from('sn_company_intel').upsert(
+        await db.from('sg_company_intel').upsert(
           { company, intel, last_analyzed_at: new Date().toISOString() },
           { onConflict: 'company' }
         )

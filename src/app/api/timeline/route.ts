@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   try {
     const db = getDb()
     const { data, error } = await db
-      .from('sn_signal_timeline')
+      .from('sg_signal_timeline')
       .select('*')
       .eq('company', company)
       .order('first_seen_at', { ascending: false })
