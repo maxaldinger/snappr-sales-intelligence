@@ -301,6 +301,8 @@ export default function TerritoryPlan() {
             revenue: '',
             hq_city: resolvedCity,
             hq_state: resolvedState,
+            lat: coords.lat,
+            lng: coords.lng,
             visual_content_need: intelData.visual_content_need || '',
             snappr_fit: intelData.snappr_fit || '',
             entry_strategy: intelData.outreach_angle || '',
