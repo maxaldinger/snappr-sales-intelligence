@@ -1,0 +1,108 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { Send, Loader2 } from 'lucide-react'
+
+interface Message { role: 'user' | 'assistant'; content: string }
+
+interface Props {
+  tool: string
+  dealName: string | null
+  context: string
+  placeholder?: string
+}
+
+export default function SAFollowUpChat({ tool, dealName, context, placeholder }: Props) {
+  const [messages, setMessages] = useState<Message[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+  }, [messages])
+
+  const sendMessage = async () => {
+    const text = input.trim()
+    if (!text || loading) return
+    const userMsg: Message = { role: 'user', content: text }
+    const updated = [...messages, userMsg]
+    setMessages(updated)
+    setInput('')
+    setLoading(true)
+
+    try {
+      let apiMessages: Message[]
+      if (messages.length === 0) {
+        apiMessages = [
+          { role: 'user', content: context },
+          { role: 'assistant', content: 'Understood. I have the full context for this builder. How can I help you refine it?' },
+          userMsg,
+        ]
+      } else {
+        apiMessages = [
+          { role: 'user', content: context },
+          { role: 'assistant', content: 'Understood. I have the full context for this builder. How can I help you refine it?' },
+          ...updated,
+        ]
+      }
+
+      const res = await fetch('/api/sa-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: apiMessages, tool }),
+      })
+      if (!res.ok) throw new Error('Chat request failed')
+      const data = await res.json()
+      setMessages(prev => [...prev, { role: 'assistant', content: data.content ?? data.message ?? '' }])
+    } catch {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Something went wrong. Please try again.' }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
+  }
+
+  return (
+    <div className="border-t border-white/10 bg-white/[0.02]">
+      {messages.length > 0 && (
+        <div ref={scrollRef} className="max-h-64 overflow-y-auto px-4 py-3 space-y-3">
+          {messages.map((msg, i) => (
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] px-4 py-2.5 rounded-xl text-sm leading-relaxed whitespace-pre-wrap ${
+                msg.role === 'user' ? 'bg-[#FF5C00] text-white' : 'bg-white/5 border border-white/10 text-slate-300'
+              }`}>
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex justify-start">
+              <div className="bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-[#FF5C00] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-[#FF5C00] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-[#FF5C00] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="px-4 py-3">
+        <div className="flex items-end gap-2">
+          <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+            placeholder={placeholder ?? `Ask a follow-up about this ${tool}...`} rows={1}
+            className="flex-1 resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#FF5C00]/50 transition-colors" />
+          <button type="button" onClick={sendMessage} disabled={!input.trim() || loading}
+            className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#FF5C00] text-white hover:bg-[#e04f00] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
