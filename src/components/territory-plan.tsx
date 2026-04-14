@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import { MapPin, DollarSign, Building2, ChevronDown, ChevronUp, RefreshCw, Sparkles, ExternalLink, Copy, Check, List, Map, Upload, X, Loader2 } from 'lucide-react'
 import { VERTICAL_COLORS } from '@/lib/types'
 import type { Intel, Contact } from '@/lib/types'
+import IntelCard from './intel-card'
 
 const TerritoryMap = dynamic(() => import('./territory-map'), { ssr: false })
 
@@ -465,65 +466,27 @@ export default function TerritoryPlan() {
                       {researching[idx] ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Researching...</> : <><Sparkles className="w-3.5 h-3.5" /> AI Deep Dive</>}
                     </button>
 
-                    {deepDive[idx] && (() => {
-                      const dd = deepDive[idx]
-                      return (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-24 h-2 rounded-full bg-white/10 overflow-hidden">
-                              <div className="h-full rounded-full bg-[#FF5C00]" style={{ width: `${dd.relevance_score}%` }} />
-                            </div>
-                            <span className="text-xs text-[#FF5C00] font-mono">{dd.relevance_score}%</span>
-                            <span className="text-[10px] text-slate-400">{dd.relevance_label}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="p-3 rounded-lg bg-violet-500/5 border border-violet-500/10">
-                              <div className="text-[10px] uppercase tracking-wider text-violet-400 mb-1">Visual Content Need</div>
-                              <p className="text-xs text-slate-300">{dd.visual_content_need}</p>
-                            </div>
-                            <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10">
-                              <div className="text-[10px] uppercase tracking-wider text-orange-400 mb-1">Snappr Fit</div>
-                              <p className="text-xs text-slate-300">{dd.snappr_fit}</p>
-                            </div>
-                          </div>
-                          {dd.talking_points?.length > 0 && (
-                            <div className="p-3 rounded-lg bg-white/5">
-                              <div className="text-[10px] uppercase tracking-wider text-slate-400 mb-2">Talking Points</div>
-                              <ul className="space-y-1">
-                                {dd.talking_points.map((pt, pi) => (
-                                  <li key={pi} className="flex items-start gap-2 text-xs text-slate-300">
-                                    <span className="text-[#FF5C00] mt-0.5">&rarr;</span> {pt}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                          {dd.target_contacts?.length > 0 && (
-                            <div>
-                              <div className="text-[10px] uppercase tracking-wider text-slate-400 mb-2">Target Contacts</div>
-                              <div className="flex flex-wrap gap-2">
-                                {dd.target_contacts.map((c: Contact, ci: number) => (
-                                  <a key={ci} href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(c.linkedin_search)}`} target="_blank" rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-white/5 text-xs text-orange-300 hover:bg-orange-500/10 transition-all" title={c.why_target}>
-                                    {c.title} <ExternalLink className="w-3 h-3 opacity-60" />
-                                  </a>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {dd.email_subject && (
-                            <button onClick={() => {
-                              navigator.clipboard.writeText(`Subject: ${dd.email_subject}\n\n${dd.outreach_angle}`)
-                              setCopied(`dd-${idx}`)
-                              setTimeout(() => setCopied(null), 2000)
-                            }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-slate-300 hover:bg-white/10 transition-all">
-                              {copied === `dd-${idx}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                              {copied === `dd-${idx}` ? 'Copied' : 'Copy outreach'}
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })()}
+                    {deepDive[idx] && (
+                      <div className="space-y-3">
+                        <IntelCard intel={deepDive[idx]} />
+                        <button onClick={() => {
+                          const dd = deepDive[idx]
+                          const brief = [
+                            dd.company_name, dd.snapshot, '',
+                            `Snappr Fit: ${dd.snappr_fit}`,
+                            `Visual Content Need: ${dd.visual_content_need}`, '',
+                            dd.email_subject ? `Subject: ${dd.email_subject}` : '',
+                            dd.outreach_angle || '',
+                          ].filter(Boolean).join('\n')
+                          navigator.clipboard.writeText(brief)
+                          setCopied(`dd-${idx}`)
+                          setTimeout(() => setCopied(null), 2000)
+                        }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-slate-300 hover:bg-white/10 transition-all">
+                          {copied === `dd-${idx}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          {copied === `dd-${idx}` ? 'Copied Brief' : 'Copy Brief'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
