@@ -1,0 +1,28 @@
+{
+  "functions": {
+    "src/app/api/feed/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/analyze/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/sa-chat/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/sa-lou/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/sa-proposal/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/sa-threading/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/sa-product-fit/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/sa-pricebook-quote/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}
